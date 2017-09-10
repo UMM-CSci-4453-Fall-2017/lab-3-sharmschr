@@ -1,0 +1,53 @@
+In order to keep track of inventory, we have to record when new inventory
+arrives, when inventory is sold, and perhaps when inventory is lost due to
+damage, theft, spoilage, etc. We’ll probably want three tables. One for
+recording when items are purchased {PurchaseId, ProductId, AmountPurchased,
+Vendor, PurchasePrice, …}, one for when items are sold {SaleId, ProductId,
+AmountSold, …}, and possibly one for recording losses as well.
+
+As far as tracking the vendors, simply having the ability to record some sort of
+external identifier of the vendor that we purchased from should be sufficient.
+
+We’ll definitely want to know who was running the till when the transaction was
+made. Tracking logins doesn’t seem particularly important, as long as the
+employees are authenticated.
+
+Tracking the amount of time that a transaction takes seems useful for large
+companies that want to collect stats on how various factors impact the checkout
+bottleneck. In a straightforward implementation, the server would just trust the
+till to send the correct timestamps to the DB.
+
+For each product, we will need to store the PricePerUnit, the Unit, and whether
+the item can be sold in fractional units. This should provide enough information
+for the till to present the employee with an intuitive UI.
+
+Up Selling is an easy feature to implement. We can just create a table where
+each row associates an item with an item to upsell. We can record when a single
+item goes on sale by creating a table recording the item, the discount price,
+and the time period valid. We can do a similar thing for combination pricing,
+but we’ll have to break it into multiple tables to avoid data duplication. We
+can probably tack coupons onto this system by adding a CouponCode field.
+Recording the usage of combination pricing on receipts gets a little tricky. In
+Lab 3, our t_items table has a gid. I think that we’ll need to add a t_groups
+table that the gid refers to.
+
+If we wait to commit any information from the transaction until the customer has
+paid for the transaction, then we can fix pre-payment mistakes at the till
+without touch the DB, and we can handle post-payment mistakes as refunds. We can
+model refunds pretty much like sales, but they are slightly more complicated
+since a refund doesn’t necessarily increase inventory, while a sale necessarily
+decreases the inventory.
+
+When disconnected from the database, the tills could operate in a special
+degraded mode that writes all the transactions to a file or something and
+wouldn’t re-enter normal mode until the network was back up and an admin
+authorized sending the transaction to the db. In order for this to work, the
+till will have to maintain a read-only copy of most of the tables when the
+network is up.
+
+
+
+
+
+
+
